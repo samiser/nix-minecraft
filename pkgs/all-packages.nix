@@ -18,6 +18,8 @@ let
   buildSupport = builtins.mapAttrs (n: v: callPackage v) (lib.our.rakeLeaves ./build-support);
 in
 rec {
+  lazymc = callPackage ./lazymc { };
+
   vanillaServers = callPackage ./vanilla-servers { };
   fabricServers = callPackage ./fabric-servers { inherit vanillaServers; };
   quiltServers = callPackage ./quilt-servers { inherit vanillaServers; };
