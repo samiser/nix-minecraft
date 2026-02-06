@@ -546,3 +546,72 @@ files."white-list.txt" = {
 ```
 
 generates a legacy `white-list.txt` that is needed for older minecraft versions (< 1.7.6)
+
+### `services.minecraft-lazymc`
+
+[Source](./modules/minecraft-lazymc.nix)
+
+Module for integrating [lazymc](https://github.com/timvisee/lazymc), which puts your Minecraft server to sleep when idle and wakes it upon player connection.
+
+When lazymc is enabled, it manages the server's public address (defaulting to port 25565), so you must select a different internal `serverProperties.server-port` for the actual Minecraft server.
+
+#### `servers.<name>.enable`
+
+Whether to enable the lazymc proxy for this server.
+
+#### `servers.<name>.package`
+
+The `lazymc` package to use. Defaults to `pkgs.lazymc`.
+
+You may need to change the lazymc version according to your Minecraft server version. For example, lazymc v0.2.10 supports Minecraft Java Edition 1.7.2+, while for Minecraft Java Edition 1.20.3+ you'll need lazymc v0.2.11.
+
+**Note:** lazymc v0.2.11 has a [known bug](https://github.com/timvisee/lazymc/issues/65) where it doesn't detect when the Minecraft server finishes starting, causing clients to timeout while waiting. If you experience this issue, use v0.2.10 instead.
+
+#### `servers.<name>.publicAddress`
+
+Address for lazymc to listen on, in the format `address:port`. Defaults to `0.0.0.0:25565`.
+
+#### `servers.<name>.openFirewall`
+
+Whether to open the lazymc port in the firewall. When lazymc is enabled, this setting applies to the lazymc public port, not the internal Minecraft server port.
+
+#### `servers.<name>.extraConfig`
+
+Extra `lazymc.toml` options, merged with the generated config. See the [lazymc configuration reference](https://github.com/timvisee/lazymc/blob/master/res/lazymc.toml).
+
+Auto-generated configuration includes: `server.command`, `server.directory`, `server.address`, and `public.address`.
+
+#### Example
+
+```nix
+{ inputs, pkgs, ... }: {
+  imports = [
+    inputs.nix-minecraft.nixosModules.minecraft-servers
+    inputs.nix-minecraft.nixosModules.minecraft-lazymc
+  ];
+
+  nixpkgs.overlays = [ inputs.nix-minecraft.overlay ];
+
+  services.minecraft-servers = {
+    enable = true;
+    eula = true;
+
+    servers.myserver = {
+      enable = true;
+      package = pkgs.paperServers.paper;
+      serverProperties = {
+        server-port = 25566; # Internal port, lazymc will proxy 25565 -> 25566
+      };
+    };
+  };
+
+  services.minecraft-lazymc.servers.myserver = {
+    enable = true;
+    publicAddress = "0.0.0.0:25565";
+    openFirewall = true;
+    extraConfig = {
+      time.sleep_after = 300; # 5 minutes idle before sleeping
+    };
+  };
+}
+```
